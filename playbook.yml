@@ -1,0 +1,96 @@
+---
+- name: Final Exam
+  hosts: all
+  become: yes
+  vars_files:
+    - config.yaml
+
+  tasks:
+    # TASK 4.4: Change MOTD using config.yaml
+    - name: Set custom MOTD
+      copy:
+        content: "Ansible Managed by {{ sys_username }}\n"
+        dest: /etc/motd
+        owner: root
+        group: root
+        mode: '0644'
+
+    # TASK 3.1: Install & Configure Enterprise Service (Nginx)
+    - name: Stop conflicting web services on Debian/Ubuntu (if active)
+      service:
+        name: apache2
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Stop conflicting web services on CentOS/RHEL (if active)
+      service:
+        name: httpd
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Nginx on Debian/Ubuntu
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install Nginx on CentOS/RHEL
+      dnf:
+        name: nginx
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Ensure Nginx service is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    # TASK 3.2: Install & Configure Nagios NRPE Agent using config.yaml
+    - name: Install Nagios NRPE agent on Debian/Ubuntu
+      apt:
+        name:
+          - "{{ nagios_debian_package }}"
+          - nagios-plugins
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install EPEL Repository on CentOS/RHEL
+      dnf:
+        name: epel-release
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Nagios NRPE agent and core plugins on CentOS/RHEL
+      dnf:
+        name:
+          - "{{ nagios_redhat_package }}"
+          - nagios-plugins-nrpe
+          - nagios-plugins-ping
+          - nagios-plugins-disk
+          - nagios-plugins-load
+          - nagios-plugins-procs
+          - nagios-plugins-users
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Ensure Nagios NRPE service is started and enabled (Debian)
+      service:
+        name: "{{ nagios_debian_package }}"
+        state: started
+        enabled: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure Nagios NRPE service is started and enabled (CentOS)
+      service:
+        name: "{{ nagios_redhat_package }}"
+        state: started
+        enabled: yes
+      when: ansible_os_family == "RedHat"

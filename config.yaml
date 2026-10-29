@@ -1,0 +1,5 @@
+---
+sys_username: "queleroyubuntu3"
+web_port: 80
+nagios_debian_package: "nagios-nrpe-server"
+nagios_redhat_package: "nrpe"
